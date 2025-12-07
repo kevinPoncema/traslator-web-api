@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import NoSportedMssages from './components/NoSportedMssages';
 import SelectedLeanguaje from './components/SelectedLeanguaje'; 
+import PermissionModal from './components/PermissionModal';
+import LoadingModal from './components/LoadingModal';
+import TranslationBoxes from './components/TranslationBoxes';
 
-// Tiempo de retraso antes de iniciar la detección de idioma (en milisegundos)
+// Constantes
 const DEBOUNCE_DELAY = 500; 
-
-// Comprobación de la disponibilidad de la API de Chrome
 const isTranslatorSupported = 'Translator' in window;
-
 const safeUpper = (lang) => (lang && typeof lang === 'string' ? lang.toUpperCase() : '...');
 
 function App() {
   // 1. Estados de Idioma y Texto
-  const [originalLanguage, setOriginalLanguage] = useState("auto"); // Idioma seleccionado por el usuario (puede ser "auto")
-  const [targetLanguage, setTargetLanguage] = useState("en");
+  const [originalLanguage, setOriginalLanguage] = useState("auto");
+  const [targetLanguage, setTargetLanguage] = useState("es"); // Cambiado a 'es' para mejor UX inicial
   const [originalText, setOriginalText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
-  
-  // Estado para el idioma real que usa el modelo (se actualiza internamente)
-  const [actualSourceLanguage, setActualSourceLanguage] = useState("es");
-  
+  const [actualSourceLanguage, setActualSourceLanguage] = useState("en"); // Idioma inicial por defecto para el modelo
+  const [debouncedText, setDebouncedText] = useState("");
+
   // 2. Estados de Carga y Feedback
   const [modelStatus, setModelStatus] = useState(isTranslatorSupported ? 'initializing' : 'unsupported');
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -30,11 +29,9 @@ function App() {
   const translatorRef = useRef(null);
   const detectorRef = useRef(null);
   
-  const startLoading = () => {
-    setHasUserStarted(true);
-  };
+  // --- Lógica de Carga y Detección (Efectos) ---
 
-  // --- EFECTO 1: Cargar Traductor (Se dispara por cambios en originalLanguage o targetLanguage) ---
+  // EFECTO 1: Cargar Traductor (Se dispara por cambios en idioma manual o actualSourceLanguage)
   useEffect(() => {
     if (!hasUserStarted || !isTranslatorSupported) {
       return;
@@ -42,7 +39,6 @@ function App() {
 
     const modelStatusCallback = (status) => {
       setModelStatus(status.state);
-      
       if (status.state === 'downloading' && status.progress !== undefined) {
           setDownloadProgress(Math.round(status.progress * 100));
       }
@@ -56,16 +52,10 @@ function App() {
             detectorRef.current = await LanguageDetector.create();
         }
         
-        // El idioma a cargar SIEMPRE es el actualSourceLanguage o el seleccionado manualmente.
-        const langToLoad = originalLanguage === "auto" ? sourceLang : originalLanguage;
-        
-        await Translator.availability({
-          sourceLanguage: langToLoad,
-          targetLanguage: targetLanguage,
-        });
+        await Translator.availability({ sourceLanguage: sourceLang, targetLanguage: targetLanguage });
         
         const tempTranslator = await Translator.create({
-          sourceLanguage: langToLoad,
+          sourceLanguage: sourceLang,
           targetLanguage: targetLanguage,
           modelStatusCallback: modelStatusCallback,
         });
@@ -79,12 +69,8 @@ function App() {
       }
     };
     
-    // Si el usuario cambia manualmente el idioma, actualizamos el idioma de origen AHORA MISMO.
-    // Si es "auto", usamos el idioma que ya detectamos/cargamos (o un fallback inicial).
     const langToLoad = originalLanguage === "auto" ? actualSourceLanguage : originalLanguage;
 
-    // Solo cargamos si el idioma actualSourceLanguage es diferente al idioma que usa el traductor
-    // o si el targetLanguage ha cambiado.
     if (translatorRef.current?.sourceLanguage !== langToLoad || translatorRef.current?.targetLanguage !== targetLanguage) {
          loadTranslator(langToLoad);
     }
@@ -92,9 +78,8 @@ function App() {
   }, [hasUserStarted, originalLanguage, targetLanguage, actualSourceLanguage]); 
 
 
-  // --- EFECTO 2: Detección de Idioma con Debouncing para 'auto' ---
+  // EFECTO 2: Detección de Idioma con Debouncing para 'auto'
   useEffect(() => {
-    // Solo si el modo 'auto' está activo y el detector está listo
     if (originalLanguage !== "auto" || !detectorRef.current) {
         return;
     }
@@ -105,17 +90,17 @@ function App() {
             const topResult = results[0]; 
             
             if (topResult && topResult.detectedLanguage !== "und" && topResult.confidence > 0.5) {
-                // Si el idioma detectado es diferente al idioma de origen actual, lo actualizamos.
-                // Esto disparará el EFECTO 1 para cargar el nuevo modelo.
                 if (topResult.detectedLanguage !== actualSourceLanguage) {
                     setActualSourceLanguage(topResult.detectedLanguage); 
                 }
             } else {
-                // Si la detección es baja o es 'und', volvemos a un idioma por defecto (ej. español)
-                if (actualSourceLanguage !== 'es') {
-                    setActualSourceLanguage('es');
+                if (actualSourceLanguage !== 'en') { // Usamos 'en' como fallback predeterminado si es 'auto'
+                    setActualSourceLanguage('en');
                 }
             }
+        } else if (actualSourceLanguage !== 'en') {
+             // Limpiar si el texto se vacía
+             setActualSourceLanguage('en');
         }
     }, DEBOUNCE_DELAY);
 
@@ -126,10 +111,17 @@ function App() {
   }, [originalText, originalLanguage, actualSourceLanguage]); 
 
 
-  // --- EFECTO 3: Traducir por Streaming ---
+  // EFECTO: Debounce para el texto original
   useEffect(() => {
-    // El traductor debe estar listo y el idioma de origen debe ser el idioma real
-    if (modelStatus !== 'ready' || !originalText.trim() || !actualSourceLanguage) {
+    const handler = setTimeout(() => {
+      setDebouncedText(originalText);
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [originalText]);
+
+  // EFECTO 3: Traducir por Streaming
+  useEffect(() => {
+    if (modelStatus !== 'ready' || !debouncedText.trim() || !actualSourceLanguage) {
       setTranslatedText(""); 
       return;
     }
@@ -143,16 +135,14 @@ function App() {
       let fullTranslation = "";
 
       try {
-        const stream = translator.translateStreaming(originalText);
-        
+        const stream = translator.translateStreaming(debouncedText);
         for await (const chunk of stream) {
           fullTranslation += chunk;
           setTranslatedText(fullTranslation); 
         }
-
       } catch (error) {
         console.error("Error durante el streaming de traducción:", error);
-        setTranslatedText("Error: No se pudo completar la traducción.");
+        setTranslatedText("Error: Intenta de nuevo.");
       } finally {
         setIsTranslating(false);
       }
@@ -160,111 +150,77 @@ function App() {
 
     translateStreaming();
 
-  }, [originalText, modelStatus, actualSourceLanguage, targetLanguage]); 
+  }, [debouncedText, modelStatus, actualSourceLanguage, targetLanguage]); 
 
-  // --- Renderizado Condicional ---
+  // --- Renderizado Condicional de la UI/UX ---
   
+  // 1. Incompatibilidad total
   if (modelStatus === 'unsupported') {
     return <NoSportedMssages />;
   }
   
+  // 2. Solicitud de Permiso Inicial
   if (!hasUserStarted) {
-      return (
-          <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-              <button 
-                  onClick={startLoading} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-xl transition duration-300"
-              >
-                  Activar Traductor (Click Requerido para Descarga)
-              </button>
-          </div>
-      );
+      return <PermissionModal onAccept={() => setHasUserStarted(true)} />;
   }
 
-  if (modelStatus === 'loading' || modelStatus === 'downloading' || modelStatus === 'initializing' || modelStatus === 'error') {
-    // ... (Lógica de mensajes de carga/error) ...
-    let message = '';
-    let isError = false;
-
-    switch (modelStatus) {
-      case 'initializing':
-      case 'loading':
-        message = 'Cargando y verificando disponibilidad...';
-        break;
-      case 'downloading':
-        message = `Descargando modelo (${downloadProgress}%)`;
-        break;
-      case 'error':
-        message = 'Error al inicializar el traductor. Revise la consola.';
-        isError = true;
-        break;
-      default:
-        message = 'Cargando...';
-    }
-
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className={`text-center ${isError ? 'text-red-500' : 'text-white'}`}>
-          <p className="text-xl font-semibold">{message}</p>
-          {modelStatus === 'downloading' && (
-            <div className="mt-4">
-              <progress value={downloadProgress} max="100" className="w-64 h-2"></progress>
-              <p className="text-sm text-white/70 mt-1">{downloadProgress}%</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- Renderizado Final: Listo ---
-  // El idioma de visualización es el actualSourceLanguage si está en modo auto,
-  // de lo contrario, es el idioma seleccionado.
+  // 3. Modal de Carga/Descarga (flota sobre la UI)
+  const isBlockingModal = modelStatus === 'loading' || modelStatus === 'downloading' || modelStatus === 'initializing';
+  
+  // Determinar idioma para la visualización del origen
   const displaySourceLanguage = originalLanguage === 'auto' ? actualSourceLanguage : originalLanguage;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-8 shadow-lg backdrop-blur w-full max-w-xl">
-        <h2 className="text-xl font-bold mb-4">Traductor Local</h2>
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center pt-8 md:pt-16 p-4">
         
-        <SelectedLeanguaje 
-            setOL={setOriginalLanguage} 
-            setTL={setTargetLanguage} 
-            originalLanguage={originalLanguage} // Le pasa la selección "auto"
-            targetLanguage={targetLanguage} 
-            actualDetectedLanguage={safeUpper(actualSourceLanguage)} // Le pasa el idioma real detectado
-        />
-        
-        {/* Sección de Texto Original */}
-        <div className="mb-4">
-          <p className="text-sm font-semibold mb-1">
-            Texto Original 
-            {/* Muestra el idioma real que se está usando */}
-            {originalLanguage === "auto" ? ` (Auto-detectado: ${safeUpper(displaySourceLanguage)})` : `(${safeUpper(displaySourceLanguage)})`}:
-          </p>
-          <textarea 
-            className="w-full h-32 p-3 rounded-lg bg-white/10 border border-white/20 text-white resize-none focus:ring-blue-500 focus:border-blue-500" 
-            placeholder="Escribe el texto a traducir aquí..."
-            value={originalText}
-            onChange={(e) => setOriginalText(e.target.value)}
-          />
-        </div>
+        {isBlockingModal && (
+            <LoadingModal 
+                status={modelStatus} 
+                progress={downloadProgress} 
+                targetLang={targetLanguage} 
+            />
+        )}
 
-        {/* Sección de Traducción por Streaming */}
-        <div>
-          <p className="text-sm font-semibold mb-1">Traducción ({safeUpper(targetLanguage)}):</p>
-          <div className="w-full h-32 p-3 rounded-lg bg-gray-700/50 border border-white/20 text-white overflow-y-auto">
-            {translatedText}
-            {isTranslating && !translatedText && <span className="text-white/50">Traduciendo...</span>}
-            {isTranslating && translatedText && <span className="animate-pulse text-white/80">...</span>}
-          </div>
-        </div>
-        
-        <p className="mt-4 text-sm text-white/70">
-            Estado: {isTranslating ? 'Traduciendo en tiempo real...' : 'Listo para traducir.'}
-        </p>
+        <div className="w-full max-w-4xl bg-slate-800/80 rounded-2xl shadow-2xl border border-white/10 p-6 md:p-8">
+            
+            {/* Header de la Aplicación */}
+            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <h1 className="text-3xl font-extrabold text-blue-400">
+                    Traductor AI Local
+                </h1>
+                <p className={`text-xs font-medium px-3 py-1 rounded-full ${modelStatus === 'ready' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                    {modelStatus === 'ready' ? 'Listo' : safeUpper(modelStatus)}
+                </p>
+            </div>
+            
+            {/* 4. Selectores de Idioma */}
+            <SelectedLeanguaje 
+                setOL={setOriginalLanguage} 
+                setTL={setTargetLanguage} 
+                originalLanguage={originalLanguage} 
+                targetLanguage={targetLanguage} 
+                actualDetectedLanguage={safeUpper(displaySourceLanguage)} 
+            />
+            
+            {/* 5. Cajas de Traducción */}
+            <TranslationBoxes 
+                originalLanguage={originalLanguage}
+                targetLanguage={targetLanguage}
+                originalText={originalText}
+                setOriginalText={setOriginalText}
+                translatedText={translatedText}
+                isTranslating={isTranslating}
+                safeUpper={safeUpper}
+            />
 
-      </div>
+            {/* Mensaje de Error (si existe) */}
+            {modelStatus === 'error' && (
+                <p className="mt-4 text-sm text-red-400 p-3 bg-red-900/20 rounded-lg">
+                    ⚠️ Error al cargar el modelo. Intenta cambiar de idioma o recargar la página.
+                </p>
+            )}
+
+        </div>
     </div>
   );
 }

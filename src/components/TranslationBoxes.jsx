@@ -8,22 +8,21 @@ function TranslationBoxes({ originalLanguage, targetLanguage, originalText, setO
         // ESTRUCTURA: Grid de 1 columna por defecto, 2 a partir de 'md'
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             
-            {/* Box 1: Texto Original (Fondo oscuro similar al de la imagen) */}
-            <div className="p-4 bg-[#202124] rounded-xl shadow-lg border border-[#3c4043] flex flex-col min-h-[250px] md:min-h-[350px]">
+            {/* Box 1: Texto Original (FONDO GRIS OSCURO / NEGRO) */}
+            <div className="p-4 bg-[#202124] rounded-xl shadow-lg border border-white/10 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#202124', color: '#ffffff' }}>
                 <p className="text-xs font-semibold mb-2 text-slate-400">
                     {originalLanguage === "auto" ? "Texto Original (Auto-detectando)" : `Texto Original (${displaySourceLanguage})`}
                 </p>
                 <textarea 
-                    // CLASES CLAVE PARA LA VISIBILIDAD:
-                    // bg-transparent: para que use el fondo oscuro del padre.
-                    // text-white: para que el texto escrito sea blanco/claro.
+                    // CAMBIO CLAVE: text-white y font-light para visibilidad y estilo GT
                     className="w-full h-full p-2 bg-transparent text-white resize-none focus:outline-none placeholder-slate-500 text-2xl font-light tracking-wide flex-grow" 
+                    style={{ color: '#ffffff' }}
                     placeholder="Escribe, habla o toma fotos"
                     value={originalText}
                     onChange={(e) => setOriginalText(e.target.value)}
                 />
 
-                {/* Área de iconos (simulando el micrófono/cámara) */}
+                {/* Área de iconos y contador */}
                 <div className='flex justify-between items-center mt-2 pt-2 border-t border-[#3c4043]'>
                     <span className='text-slate-400 hover:text-white transition duration-150 cursor-pointer text-xl'>
                         🎤
@@ -34,8 +33,8 @@ function TranslationBoxes({ originalLanguage, targetLanguage, originalText, setO
                 </div>
             </div>
 
-            {/* Box 2: Traducción (Fondo azul/oscuro para contraste, similar a la imagen) */}
-            <div className="p-4 bg-[#174EA6] rounded-xl shadow-lg border border-blue-500/30 flex flex-col min-h-[250px] md:min-h-[350px]">
+            {/* Box 2: Traducción (FONDO AZUL OSCURO PARA CONTRASTE) */}
+            <div className="p-4 bg-[#174EA6] rounded-xl shadow-lg border border-blue-500/30 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#174EA6', color: '#ffffff' }}>
                 
                 {/* Contenido de la Traducción */}
                 <div className="flex-grow">
