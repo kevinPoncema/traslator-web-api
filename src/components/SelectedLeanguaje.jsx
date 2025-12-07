@@ -32,12 +32,13 @@ function SelectedLeanguaje({ setOL, setTL, originalLanguage, targetLanguage, act
                     onChange={(e) => setOL(e.target.value)}
                 >
                     {/* La opción de auto-detectar siempre mantiene el valor "auto" */}
-                    <option value="auto">
-                        🔍 Detectar idioma {originalLanguage !== 'auto' && `(${actualDetectedLanguage})`}
-                    </option>
                     {Object.entries(lenguajeList).map(([nombre, codigo]) => (
                         <option key={codigo} value={codigo}>{nombre}</option>
                     ))}
+
+                    <option value="auto">
+                        🔍 Detectar idioma {originalLanguage !== 'auto' && `(${actualDetectedLanguage})`}
+                    </option>
                 </select>
             </div>
             <div>
