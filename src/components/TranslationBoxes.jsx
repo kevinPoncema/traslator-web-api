@@ -21,6 +21,44 @@ function TranslationBoxes({ originalLanguage, targetLanguage, originalText, setO
         window.speechSynthesis.speak(utterance);
     };
 
+    const microphoneHandler = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            alert("El reconocimiento de voz no es soportado en tu navegador");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = originalLanguage === "auto" ? "en-US" : originalLanguage;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        recognition.onstart = () => {
+            console.log("Escuchando...");
+        };
+
+        recognition.onresult = (event) => {
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            setOriginalText(transcript);
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Error en el reconocimiento de voz:", event.error);
+            alert("Error: " + event.error);
+        };
+
+        recognition.onend = () => {
+            console.log("Reconocimiento finalizado");
+        };
+
+        recognition.start();
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             
@@ -38,7 +76,7 @@ function TranslationBoxes({ originalLanguage, targetLanguage, originalText, setO
                 />
 
                 <div className='flex justify-between items-center mt-2 pt-2 border-t border-gray-700'>
-                    <span className='text-gray-500 hover:text-gray-300 transition duration-150 cursor-pointer text-xl'>
+                    <span onClick={microphoneHandler} className='text-gray-500 hover:text-gray-300 transition duration-150 cursor-pointer text-xl'>
                         🎤
                     </span>
                     <span className='text-gray-500 text-xs'>
