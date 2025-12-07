@@ -7,33 +7,16 @@ const lenguajeList = {
   "Alemán": "de",
   "Italiano": "it",
   "Portugués": "pt",
-  "Neerlandés": "nl",
-  "Sueco": "sv",
-  "Noruego": "no",
-  "Finlandés": "fi",
-  "Danés": "da",
-  "Griego": "el",
   
   // Idiomas Europeos Orientales y del Este
   "Ruso": "ru",
   "Polaco": "pl",
-  "Checo": "cs",
-  "Húngaro": "hu",
-  "Rumano": "ro",
-  "Ucraniano": "uk",
   "Turco": "tr", // Se considera a menudo en el contexto europeo/eurasiático
   
   // Idiomas Asiáticos Clave
   "Japonés": "ja",
   "Coreano": "ko",
   "Chino (Simplificado)": "zh-CN",
-  "Hindi": "hi",
-  "Árabe": "ar",
-  
-  // Otros
-  "Vietnamita": "vi",
-  "Indonesio": "id",
-  "Tailandés": "th",
 };
 function SelectedLeanguaje({ setOL, setTL, originalLanguage, targetLanguage, actualDetectedLanguage }) {
 

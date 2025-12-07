@@ -1,59 +1,69 @@
 import React from 'react';
 
 function TranslationBoxes({ originalLanguage, targetLanguage, originalText, setOriginalText, translatedText, isTranslating, safeUpper }) {
-    
     const displaySourceLanguage = originalLanguage === 'auto' ? originalLanguage : safeUpper(originalLanguage);
 
+    const handleCopy = async () => {
+        if (!translatedText) return;
+        try {
+            await navigator.clipboard.writeText(translatedText);
+            alert("Texto copiado correctamente");
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    const handleSpeak = () => {
+        if (!translatedText) return;
+        window.speechSynthesis.cancel(); // Detener cualquier audio previo
+        const utterance = new SpeechSynthesisUtterance(translatedText);
+        utterance.lang = targetLanguage;
+        window.speechSynthesis.speak(utterance);
+    };
+
     return (
-        // ESTRUCTURA: Grid de 1 columna por defecto, 2 a partir de 'md'
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             
-            {/* Box 1: Texto Original (FONDO GRIS OSCURO / NEGRO) */}
-            <div className="p-4 bg-[#202124] rounded-xl shadow-lg border border-white/10 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#202124', color: '#ffffff' }}>
-                <p className="text-xs font-semibold mb-2 text-slate-400">
+            <div className="p-4 rounded-xl shadow-lg border border-gray-800 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#18181b', color: '#d1d5db' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: '#6b7280' }}>
                     {originalLanguage === "auto" ? "Texto Original (Auto-detectando)" : `Texto Original (${displaySourceLanguage})`}
                 </p>
                 <textarea 
                     // CAMBIO CLAVE: text-white y font-light para visibilidad y estilo GT
-                    className="w-full h-full p-2 bg-transparent text-white resize-none focus:outline-none placeholder-slate-500 text-2xl font-light tracking-wide flex-grow" 
-                    style={{ color: '#ffffff' }}
+                    className="w-full h-full p-2 bg-transparent resize-none focus:outline-none placeholder-gray-600 text-2xl font-light tracking-wide flex-grow"
+                    style={{ color: '#d1d5db', backgroundColor: '#18181b', borderColor: '#27272a', borderWidth: '1px', borderRadius: '0.5rem' }}
                     placeholder="Escribe, habla o toma fotos"
                     value={originalText}
                     onChange={(e) => setOriginalText(e.target.value)}
                 />
 
-                {/* Área de iconos y contador */}
-                <div className='flex justify-between items-center mt-2 pt-2 border-t border-[#3c4043]'>
-                    <span className='text-slate-400 hover:text-white transition duration-150 cursor-pointer text-xl'>
+                <div className='flex justify-between items-center mt-2 pt-2 border-t border-gray-700'>
+                    <span className='text-gray-500 hover:text-gray-300 transition duration-150 cursor-pointer text-xl'>
                         🎤
                     </span>
-                    <span className='text-slate-400 text-xs'>
+                    <span className='text-gray-500 text-xs'>
                         {originalText.length} caracteres
                     </span>
                 </div>
             </div>
 
-            {/* Box 2: Traducción (FONDO AZUL OSCURO PARA CONTRASTE) */}
-            <div className="p-4 bg-[#174EA6] rounded-xl shadow-lg border border-blue-500/30 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#174EA6', color: '#ffffff' }}>
+            <div className="p-4 rounded-xl shadow-lg border border-gray-800 flex flex-col min-h-[250px] md:min-h-[350px]" style={{ backgroundColor: '#1e293b', color: '#d1d5db' }}>
                 
-                {/* Contenido de la Traducción */}
                 <div className="flex-grow">
-                    <p className="text-xs font-semibold mb-2 text-blue-100">
+                    <p className="text-xs font-semibold mb-2" style={{ color: '#64748b' }}>
                         Traducción ({safeUpper(targetLanguage)})
                     </p>
-                    <div className="w-full h-full text-white overflow-y-auto text-2xl font-light tracking-wide pt-2">
+                    <div className="w-full h-full overflow-y-auto text-2xl font-light tracking-wide pt-2" style={{ color: '#d1d5db' }}>
                         {translatedText}
-                        {isTranslating && !translatedText && <span className="text-white/50 animate-pulse">Traduciendo...</span>}
-                        {isTranslating && translatedText && <span className="animate-pulse text-white/80">...</span>}
-                        {!originalText.trim() && !translatedText && <span className="text-blue-300/80">Traducción</span>}
+                        {isTranslating && !translatedText && <span style={{ color: '#64748b' }} className="animate-pulse">Traduciendo...</span>}
+                        {isTranslating && translatedText && <span className="animate-pulse" style={{ color: '#64748b' }}>...</span>}
+                        {!originalText.trim() && !translatedText && <span style={{ color: '#64748b' }}>Traducción</span>}
                     </div>
                 </div>
 
-                {/* Opciones inferiores de traducción */}
-                <div className="flex justify-end text-sm text-blue-200 mt-2 space-x-4 border-t border-blue-400/30 pt-2">
-                    <button className="hover:text-white transition duration-150" title="Guardar">⭐</button>
-                    <button className="hover:text-white transition duration-150" title="Compartir">🔗</button>
-                    <button className="hover:text-white transition duration-150" title="Copiar">📋</button>
+                <div className="flex justify-end text-sm mt-2 space-x-4 border-t border-gray-700 pt-2">
+                    <button onClick={handleSpeak} className="hover:text-gray-300 transition duration-150" title="Escuchar">🔊</button>
+                    <button onClick={handleCopy} className="hover:text-gray-300 transition duration-150" title="Copiar">📋</button>
                 </div>
             </div>
         </div>

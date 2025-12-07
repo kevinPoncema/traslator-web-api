@@ -13,10 +13,10 @@ const safeUpper = (lang) => (lang && typeof lang === 'string' ? lang.toUpperCase
 function App() {
   // 1. Estados de Idioma y Texto
   const [originalLanguage, setOriginalLanguage] = useState("auto");
-  const [targetLanguage, setTargetLanguage] = useState("es"); // Cambiado a 'es' para mejor UX inicial
+  const [targetLanguage, setTargetLanguage] = useState("es");
   const [originalText, setOriginalText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
-  const [actualSourceLanguage, setActualSourceLanguage] = useState("en"); // Idioma inicial por defecto para el modelo
+  const [actualSourceLanguage, setActualSourceLanguage] = useState("en");
   const [debouncedText, setDebouncedText] = useState("");
 
   // 2. Estados de Carga y Feedback
@@ -25,13 +25,10 @@ function App() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [hasUserStarted, setHasUserStarted] = useState(false); 
 
-  // 3. Referencias
   const translatorRef = useRef(null);
   const detectorRef = useRef(null);
   
   // --- Lógica de Carga y Detección (Efectos) ---
-
-  // EFECTO 1: Cargar Traductor (Se dispara por cambios en idioma manual o actualSourceLanguage)
   useEffect(() => {
     if (!hasUserStarted || !isTranslatorSupported) {
       return;
@@ -94,12 +91,11 @@ function App() {
                     setActualSourceLanguage(topResult.detectedLanguage); 
                 }
             } else {
-                if (actualSourceLanguage !== 'en') { // Usamos 'en' como fallback predeterminado si es 'auto'
+                if (actualSourceLanguage !== 'en') {
                     setActualSourceLanguage('en');
                 }
             }
         } else if (actualSourceLanguage !== 'en') {
-             // Limpiar si el texto se vacía
              setActualSourceLanguage('en');
         }
     }, DEBOUNCE_DELAY);
@@ -212,6 +208,15 @@ function App() {
                 isTranslating={isTranslating}
                 safeUpper={safeUpper}
             />
+
+            {/* Disclaimer Experimental */}
+            <div className="mt-8 p-4 border-t border-white/10 text-center">
+                <p className="text-xs text-slate-500 max-w-2xl mx-auto leading-relaxed">
+                    ⚠️ <strong>Nota:</strong> Este proyecto utiliza tecnologías experimentales para la traducción local en tiempo real. 
+                    Por ende, puede presentar varios problemas o inestabilidad. Es un proyecto experimental y 
+                    <span className="text-red-400/80"> no está recomendado para uso real o profesional.</span>
+                </p>
+            </div>
 
             {/* Mensaje de Error (si existe) */}
             {modelStatus === 'error' && (

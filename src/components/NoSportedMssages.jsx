@@ -4,9 +4,10 @@ const gradientOverlay =
 function NoSportedMssages() {
 	return (
 		<div
-			className={`min-h-screen ${gradientOverlay} text-slate-50 flex items-center justify-center px-6 py-10`}
+			className="min-h-screen flex items-center justify-center px-6 py-10"
+            style={{ backgroundColor: '#171717', color: '#ffffff' }}
 		>
-			<div className="relative max-w-4xl w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur">
+			<div className="relative max-w-4xl w-full overflow-hidden rounded-3xl border border-white/10 shadow-2xl" style={{ backgroundColor: '#202124' }}>
 				<div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-teal-400/5 to-purple-500/10" aria-hidden="true" />
 				<div className="relative grid gap-8 md:grid-cols-[1.1fr_0.9fr] p-10 md:p-12">
 					<div className="flex flex-col gap-6">
