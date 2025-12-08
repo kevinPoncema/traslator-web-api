@@ -1,16 +1,64 @@
-# React + Vite
+🧠 Chrome AI Local Translator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Un traductor web moderno, en tiempo real y centrado en la privacidad, construido con React y potenciado por las APIs de IA integradas (Built-in AI) experimentales de Google Chrome.
 
-Currently, two official plugins are available:
+Este proyecto es una Prueba de Concepto (PoC) que explora el futuro de la "IA en el dispositivo" (On-device AI). A diferencia de los traductores tradicionales que envían datos a la nube, esta aplicación descarga modelos de lenguaje optimizados directamente en el navegador del usuario. Esto permite traducciones instantáneas, funcionamiento sin conexión a internet y privacidad absoluta, ya que el texto nunca sale de tu ordenador. Además, integra capacidades de voz nativas para ofrecer una experiencia completa de dictado y lectura.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+⚠️ Advertencia Importante: Tecnología Experimental
 
-## React Compiler
+Este proyecto utiliza APIs que aún NO son estándar.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Las APIs utilizadas (window.ai, Translator, LanguageDetector) forman parte de la iniciativa Chrome Built-in AI y se encuentran en fase de "Early Preview".
 
-## Expanding the ESLint configuration
+Requisito Obligatorio: Este proyecto NO funcionará en un navegador estándar sin configuración. Requiere una versión reciente de Google Chrome (Canary o Dev) con flags específicas activadas (chrome://flags -> Translation API, Language Detection API, etc.).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Estabilidad: Es posible encontrar comportamientos inusuales, tiempos de carga elevados al descargar modelos por primera vez o errores en la traducción de ciertos pares de idiomas.
+
+Propósito: Este código está diseñado con fines educativos y de experimentación, no se recomienda para entornos de producción.
+
+📂 Estructura del Código
+
+El proyecto sigue una arquitectura modular en React para separar la lógica de negocio (gestión de IA) de la interfaz de usuario.
+
+src/
+├── components/
+│   ├── LoadingModal.js       # UI: Muestra el progreso de descarga de los modelos de IA.
+│   ├── NoSportedMssages.js   # UI: Pantalla de error si el navegador no soporta las APIs.
+│   ├── PermissionModal.js    # UI: Solicita consentimiento para descargar archivos grandes (modelos).
+│   ├── SelectedLeanguaje.js  # UI: Selectores inteligentes para origen/destino.
+│   └── TranslationBoxes.js   # UI: Áreas de texto, botones de micrófono y síntesis de voz.
+├── App.js                    # Logic: Controlador principal (Detección, Streaming, Estado).
+└── main.jsx                  # Entry: Punto de entrada de la aplicación React.
+
+
+🌐 APIs Web Utilizadas
+
+Este proyecto combina APIs nativas estándar con las nuevas capacidades de IA de Chrome:
+
+1. Translator API (Chrome Built-in AI)
+
+Contexto: Permite realizar traducciones de texto localmente utilizando modelos neuronales descargados en el dispositivo.
+
+Uso en el proyecto: Se utiliza en modo streaming (translateStreaming), lo que permite que el texto traducido aparezca progresivamente mientras el modelo lo genera, similar a escribir en tiempo real.
+
+2. Language Detection API (Chrome Built-in AI)
+
+Contexto: Una API capaz de clasificar el idioma de un texto basándose en su contenido.
+
+Uso en el proyecto: Al escribir en el cuadro de texto, esta API analiza la entrada para determinar automáticamente el idioma de origen si el usuario ha seleccionado el modo "Auto-detectar".
+
+3. Web Speech API (Speech Recognition)
+
+Contexto: Estándar web para convertir audio en tiempo real a texto.
+
+Uso en el proyecto: Permite al usuario dictar el texto a traducir utilizando su micrófono en lugar de escribirlo.
+
+4. Web Speech API (Speech Synthesis)
+
+Contexto: Estándar web para la síntesis de voz (Text-to-Speech).
+
+Uso en el proyecto: Permite "leer" en voz alta el resultado de la traducción en el idioma de destino con una pronunciación nativa.
+
+<p align="center">
+Hecho con ❤️ y curiosidad por la IA Local.
+</p>
