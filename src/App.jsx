@@ -10,9 +10,24 @@ const DEBOUNCE_DELAY = 500;
 const isTranslatorSupported = 'Translator' in window;
 const safeUpper = (lang) => (lang && typeof lang === 'string' ? lang.toUpperCase() : '...');
 
+// Idiomas soportados por Chrome Translator API
+const SUPPORTED_LANGUAGES = {
+  'en': 'English',
+  'es': 'Español',
+  'fr': 'Français',
+  'de': 'Deutsch',
+  'it': 'Italiano',
+  'pt': 'Português',
+  'pl': 'Polski',
+  'uk': 'Українська',
+  'ja': 'Japanese',
+  'zh': 'Chinese',
+  'ko': 'Korean',
+};
+
 function App() {
   // 1. Estados de Idioma y Texto
-  const [originalLanguage, setOriginalLanguage] = useState("auto");
+  const [originalLanguage, setOriginalLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
   const [originalText, setOriginalText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
@@ -43,6 +58,25 @@ function App() {
 
     const loadTranslator = async (sourceLang) => {
       try {
+        // Validar que los idiomas no sean iguales
+        if (sourceLang === targetLanguage) {
+          console.warn("El idioma de origen y destino no pueden ser iguales");
+          // Cambiar automáticamente el idioma de destino a español si es necesario
+          if (targetLanguage !== 'es') {
+            setTargetLanguage('es');
+          } else {
+            setTargetLanguage('en');
+          }
+          return;
+        }
+
+        // Validar que ambos idiomas estén soportados
+        if (!SUPPORTED_LANGUAGES[sourceLang] || !SUPPORTED_LANGUAGES[targetLanguage]) {
+          console.warn("Combinación de idiomas no soportada. Usando español como fallback.");
+          setTargetLanguage('es');
+          return;
+        }
+
         setModelStatus('loading');
         
         if (!detectorRef.current && 'LanguageDetector' in window) {
@@ -62,11 +96,24 @@ function App() {
 
       } catch (error) {
         console.error("Fallo al cargar el traductor:", error);
+        // Usar español como fallback en caso de error
+        if (targetLanguage !== 'es') {
+          setTargetLanguage('es');
+        }
         setModelStatus('error');
       }
     };
     
-    const langToLoad = originalLanguage === "auto" ? actualSourceLanguage : originalLanguage;
+    
+    let langToLoad = originalLanguage === "auto" ? actualSourceLanguage : originalLanguage;
+    
+    // Validación final antes de cargar
+    if (langToLoad === targetLanguage) {
+      // Si son iguales, cambiar automáticamente el destino
+      const newTarget = targetLanguage === 'es' ? 'en' : 'es';
+      setTargetLanguage(newTarget);
+      return;
+    }
 
     if (translatorRef.current?.sourceLanguage !== langToLoad || translatorRef.current?.targetLanguage !== targetLanguage) {
          loadTranslator(langToLoad);
@@ -83,17 +130,26 @@ function App() {
     
     const handler = setTimeout(async () => {
         if (originalText.trim().length > 2) {
-            const results = await detectorRef.current.detect(originalText);
-            const topResult = results[0]; 
-            
-            if (topResult && topResult.detectedLanguage !== "und" && topResult.confidence > 0.5) {
-                if (topResult.detectedLanguage !== actualSourceLanguage) {
-                    setActualSourceLanguage(topResult.detectedLanguage); 
-                }
-            } else {
-                if (actualSourceLanguage !== 'en') {
-                    setActualSourceLanguage('en');
-                }
+            try {
+              const results = await detectorRef.current.detect(originalText);
+              const topResult = results[0]; 
+              
+              // Validar que el idioma detectado esté en la lista de soportados
+              if (topResult && topResult.detectedLanguage !== "und" && topResult.confidence > 0.5 && SUPPORTED_LANGUAGES[topResult.detectedLanguage]) {
+                  if (topResult.detectedLanguage !== actualSourceLanguage) {
+                      setActualSourceLanguage(topResult.detectedLanguage); 
+                  }
+              } else {
+                  // Si no se detecta o no es soportado, usar inglés
+                  if (actualSourceLanguage !== 'en') {
+                      setActualSourceLanguage('en');
+                  }
+              }
+            } catch (error) {
+              console.error("Error en detección de idioma:", error);
+              if (actualSourceLanguage !== 'en') {
+                  setActualSourceLanguage('en');
+              }
             }
         } else if (actualSourceLanguage !== 'en') {
              setActualSourceLanguage('en');
@@ -167,7 +223,7 @@ function App() {
   const displaySourceLanguage = originalLanguage === 'auto' ? actualSourceLanguage : originalLanguage;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center pt-8 md:pt-16 p-4">
+    <div className="min-h-screen flex flex-col items-center pt-8 md:pt-16 p-4" style={{ backgroundColor: '#0a0a0a', color: '#e5e7eb' }}>
         
         {isBlockingModal && (
             <LoadingModal 
@@ -177,11 +233,11 @@ function App() {
             />
         )}
 
-        <div className="w-full max-w-4xl bg-slate-800/80 rounded-2xl shadow-2xl border border-white/10 p-6 md:p-8">
+        <div className="w-full max-w-4xl rounded-2xl shadow-2xl border p-6 md:p-8" style={{ backgroundColor: '#18181b', borderColor: '#27272a' }}>
             
             {/* Header de la Aplicación */}
-            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                <h1 className="text-3xl font-extrabold text-blue-400">
+            <div className="flex justify-between items-center mb-6 border-b pb-4" style={{ borderColor: '#27272a' }}>
+                <h1 className="text-3xl font-extrabold" style={{ color: '#60a5fa' }}>
                     Traductor AI Local
                 </h1>
                 <p className={`text-xs font-medium px-3 py-1 rounded-full ${modelStatus === 'ready' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
@@ -210,17 +266,17 @@ function App() {
             />
 
             {/* Disclaimer Experimental */}
-            <div className="mt-8 p-4 border-t border-white/10 text-center">
-                <p className="text-xs text-slate-500 max-w-2xl mx-auto leading-relaxed">
-                    ⚠️ <strong>Nota:</strong> Este proyecto utiliza tecnologías experimentales para la traducción local en tiempo real. 
+            <div className="mt-8 p-4 border-t text-center" style={{ borderColor: '#27272a' }}>
+                <p className="text-xs max-w-2xl mx-auto leading-relaxed" style={{ color: '#9ca3af' }}>
+                    ⚠️ <strong style={{ color: '#d1d5db' }}>Nota:</strong> Este proyecto utiliza tecnologías experimentales para la traducción local en tiempo real. 
                     Por ende, puede presentar varios problemas o inestabilidad. Es un proyecto experimental y 
-                    <span className="text-red-400/80"> no está recomendado para uso real o profesional.</span>
+                    <span style={{ color: '#f87171' }}> no está recomendado para uso real o profesional.</span>
                 </p>
             </div>
 
             {/* Mensaje de Error (si existe) */}
             {modelStatus === 'error' && (
-                <p className="mt-4 text-sm text-red-400 p-3 bg-red-900/20 rounded-lg">
+                <p className="mt-4 text-sm p-3 rounded-lg" style={{ color: '#fca5a5', backgroundColor: '#450a0a' }}>
                     ⚠️ Error al cargar el modelo. Intenta cambiar de idioma o recargar la página.
                 </p>
             )}
