@@ -10,7 +10,6 @@ const DEBOUNCE_DELAY = 500;
 const isTranslatorSupported = 'Translator' in window;
 const safeUpper = (lang) => (lang && typeof lang === 'string' ? lang.toUpperCase() : '...');
 
-// Idiomas soportados por Chrome Translator API
 const SUPPORTED_LANGUAGES = {
   'en': 'English',
   'es': 'Español',
@@ -26,7 +25,6 @@ const SUPPORTED_LANGUAGES = {
 };
 
 function App() {
-  // 1. Estados de Idioma y Texto
   const [originalLanguage, setOriginalLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
   const [originalText, setOriginalText] = useState("");
@@ -34,7 +32,7 @@ function App() {
   const [actualSourceLanguage, setActualSourceLanguage] = useState("en");
   const [debouncedText, setDebouncedText] = useState("");
 
-  // 2. Estados de Carga y Feedback
+
   const [modelStatus, setModelStatus] = useState(isTranslatorSupported ? 'initializing' : 'unsupported');
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -43,7 +41,6 @@ function App() {
   const translatorRef = useRef(null);
   const detectorRef = useRef(null);
   
-  // --- Lógica de Carga y Detección (Efectos) ---
   useEffect(() => {
     if (!hasUserStarted || !isTranslatorSupported) {
       return;
@@ -58,10 +55,8 @@ function App() {
 
     const loadTranslator = async (sourceLang) => {
       try {
-        // Validar que los idiomas no sean iguales
         if (sourceLang === targetLanguage) {
           console.warn("El idioma de origen y destino no pueden ser iguales");
-          // Cambiar automáticamente el idioma de destino a español si es necesario
           if (targetLanguage !== 'es') {
             setTargetLanguage('es');
           } else {
@@ -70,7 +65,6 @@ function App() {
           return;
         }
 
-        // Validar que ambos idiomas estén soportados
         if (!SUPPORTED_LANGUAGES[sourceLang] || !SUPPORTED_LANGUAGES[targetLanguage]) {
           console.warn("Combinación de idiomas no soportada. Usando español como fallback.");
           setTargetLanguage('es');
@@ -96,7 +90,6 @@ function App() {
 
       } catch (error) {
         console.error("Fallo al cargar el traductor:", error);
-        // Usar español como fallback en caso de error
         if (targetLanguage !== 'es') {
           setTargetLanguage('es');
         }
@@ -107,9 +100,7 @@ function App() {
     
     let langToLoad = originalLanguage === "auto" ? actualSourceLanguage : originalLanguage;
     
-    // Validación final antes de cargar
     if (langToLoad === targetLanguage) {
-      // Si son iguales, cambiar automáticamente el destino
       const newTarget = targetLanguage === 'es' ? 'en' : 'es';
       setTargetLanguage(newTarget);
       return;
@@ -122,7 +113,6 @@ function App() {
   }, [hasUserStarted, originalLanguage, targetLanguage, actualSourceLanguage]); 
 
 
-  // EFECTO 2: Detección de Idioma con Debouncing para 'auto'
   useEffect(() => {
     if (originalLanguage !== "auto" || !detectorRef.current) {
         return;
@@ -134,13 +124,11 @@ function App() {
               const results = await detectorRef.current.detect(originalText);
               const topResult = results[0]; 
               
-              // Validar que el idioma detectado esté en la lista de soportados
               if (topResult && topResult.detectedLanguage !== "und" && topResult.confidence > 0.5 && SUPPORTED_LANGUAGES[topResult.detectedLanguage]) {
                   if (topResult.detectedLanguage !== actualSourceLanguage) {
                       setActualSourceLanguage(topResult.detectedLanguage); 
                   }
               } else {
-                  // Si no se detecta o no es soportado, usar inglés
                   if (actualSourceLanguage !== 'en') {
                       setActualSourceLanguage('en');
                   }
@@ -163,7 +151,6 @@ function App() {
   }, [originalText, originalLanguage, actualSourceLanguage]); 
 
 
-  // EFECTO: Debounce para el texto original
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedText(originalText);
@@ -171,7 +158,6 @@ function App() {
     return () => clearTimeout(handler);
   }, [originalText]);
 
-  // EFECTO 3: Traducir por Streaming
   useEffect(() => {
     if (modelStatus !== 'ready' || !debouncedText.trim() || !actualSourceLanguage) {
       setTranslatedText(""); 
@@ -204,22 +190,17 @@ function App() {
 
   }, [debouncedText, modelStatus, actualSourceLanguage, targetLanguage]); 
 
-  // --- Renderizado Condicional de la UI/UX ---
-  
-  // 1. Incompatibilidad total
   if (modelStatus === 'unsupported') {
     return <NoSportedMssages />;
   }
   
-  // 2. Solicitud de Permiso Inicial
   if (!hasUserStarted) {
       return <PermissionModal onAccept={() => setHasUserStarted(true)} />;
   }
 
-  // 3. Modal de Carga/Descarga (flota sobre la UI)
   const isBlockingModal = modelStatus === 'loading' || modelStatus === 'downloading' || modelStatus === 'initializing';
   
-  // Determinar idioma para la visualización del origen
+
   const displaySourceLanguage = originalLanguage === 'auto' ? actualSourceLanguage : originalLanguage;
 
   return (
